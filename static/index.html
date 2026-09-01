@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#ffffff" />
+    <title>深象万象巡检助手</title>
+    <link rel="stylesheet" href="/static/styles.css?v=20260824-open-research-records" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <img
+            class="brand-mark"
+            src="/static/assets/deepvision-evolution-logo.png"
+            alt="深象万象"
+          />
+          <div class="brand-copy">
+            <strong>深象万象</strong>
+            <span>自进化 AI 助手</span>
+          </div>
+        </div>
+
+        <button id="newConversationBtn" class="new-chat-button" type="button">
+          <span aria-hidden="true">＋</span>
+          新建对话
+        </button>
+
+        <nav class="primary-nav" aria-label="主要功能">
+          <button class="nav-item active" type="button" data-view="chat">
+            <span class="nav-icon" aria-hidden="true">✦</span>
+            <span>巡检助理</span>
+          </button>
+          <button class="nav-item" type="button" data-view="events">
+            <span class="nav-icon" aria-hidden="true">◎</span>
+            <span>告警与证据</span>
+            <span id="eventMetric" class="nav-count">0</span>
+          </button>
+          <button class="nav-item" type="button" data-view="analytics">
+            <span class="nav-icon" aria-hidden="true">⌁</span>
+            <span>数据分析</span>
+          </button>
+          <button class="nav-item" type="button" data-view="subscriptions">
+            <span class="nav-icon" aria-hidden="true">◇</span>
+            <span>巡检订阅</span>
+          </button>
+          <button id="integrationsNavItem" class="nav-item" type="button" data-view="integrations">
+            <span class="nav-icon" aria-hidden="true">⊕</span>
+            <span>接入管理</span>
+          </button>
+          <button id="tenantSettingsNavItem" class="nav-item" type="button" data-view="tenantSettings">
+            <span class="nav-icon" aria-hidden="true">⚙</span>
+            <span>租户能力</span>
+          </button>
+          <button id="openResearchRecordsNavItem" class="nav-item" type="button" data-view="researchRecords">
+            <span class="nav-icon" aria-hidden="true">⌕</span>
+            <span>开放检索记录</span>
+          </button>
+          <button id="agentCatalogNavItem" class="nav-item" type="button" data-view="agentCatalog">
+            <span class="nav-icon" aria-hidden="true">⌬</span>
+            <span>Agent 能力</span>
+          </button>
+          <button id="auditNavItem" class="nav-item" type="button" data-view="audit">
+            <span class="nav-icon" aria-hidden="true">≡</span>
+            <span>操作记录</span>
+          </button>
+        </nav>
+
+        <section id="conversationHistorySection" class="recent-section" aria-label="历史对话">
+          <div class="history-heading">
+            <div class="section-label">历史对话 <span id="conversationHistoryCount"></span></div>
+            <div class="history-actions">
+              <button id="conversationHistoryClear" class="history-clear" type="button" aria-label="一键清空历史对话" title="一键清空历史对话">清空</button>
+              <button id="conversationHistoryToggle" class="history-toggle" type="button" aria-label="收起历史对话" aria-expanded="true" title="收起历史对话">⌃</button>
+            </div>
+          </div>
+          <div id="conversationHistory" class="conversation-history"></div>
+        </section>
+
+        <div class="sidebar-context">
+          <div class="safety-note">
+            <span class="status-dot"></span>
+            <div>
+              <strong id="safetyTitle">安全执行已开启</strong>
+              <span id="safetyDescription">修改配置前会请你确认</span>
+            </div>
+          </div>
+          <label for="tenantSelect">当前租户</label>
+          <select id="tenantSelect" aria-label="当前租户"></select>
+          <label id="orgPickerLabel" for="orgPickerButton">当前门店</label>
+          <div id="orgPicker" class="store-picker">
+            <button id="orgPickerButton" class="store-picker-button" type="button" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="orgPickerLabel orgPickerButtonText">
+              <span id="orgPickerButtonText">请选择门店</span>
+              <span class="store-picker-chevron" aria-hidden="true">⌄</span>
+            </button>
+            <div id="orgPickerPopover" class="store-picker-popover" hidden>
+              <div class="store-search-field">
+                <span aria-hidden="true">⌕</span>
+                <input id="orgSearchInput" type="search" autocomplete="off" placeholder="搜索门店名称或组织编号" aria-label="搜索门店" />
+              </div>
+              <div id="orgSearchSummary" class="store-search-summary" aria-live="polite"></div>
+              <div id="orgSearchResults" class="store-search-results" role="listbox" aria-label="门店列表"></div>
+            </div>
+          </div>
+          <select id="orgSelect" aria-label="当前门店" tabindex="-1" hidden></select>
+          <p id="contextSummary" class="context-summary"></p>
+          <label id="userSelectLabel" for="userSelect">体验角色</label>
+          <select id="userSelect" aria-label="体验角色">
+            <option value="u_admin">租户管理员</option>
+            <option value="u_region">区域运营</option>
+            <option value="u_store">门店负责人</option>
+            <option value="u_frontline">一线人员</option>
+          </select>
+        </div>
+      </aside>
+
+      <main class="main-area">
+        <header class="workspace-header">
+          <div class="workspace-heading">
+            <h1 id="viewTitle">巡检助理</h1>
+            <p id="viewSubtitle">用一句话查询告警、分析数据或创建巡检任务</p>
+          </div>
+          <div class="header-actions">
+            <span id="integrationBadge" class="integration-badge" hidden>在线数据</span>
+            <span id="scopeBadge" class="scope-badge">广州悦汇城</span>
+            <span id="planMetric" class="pending-badge" hidden>1 项待确认</span>
+            <button id="mobileNewConversationBtn" class="mobile-new-button" type="button" aria-label="新建对话">＋</button>
+            <button id="refreshBtn" class="quiet-button" type="button" aria-label="刷新数据">刷新</button>
+            <button id="detailToggle" class="detail-button" type="button" aria-expanded="false" aria-controls="inspectorPanel">任务详情</button>
+          </div>
+        </header>
+
+        <section id="chatView" class="view chat-view active">
+          <div id="chatScroll" class="chat-scroll">
+            <section id="emptyWelcome" class="empty-welcome">
+              <div class="assistant-orb" aria-hidden="true">✦</div>
+              <p class="eyebrow">万象 AI 巡检助理</p>
+              <h2>今天想检查什么？</h2>
+              <p id="welcomeCopy" class="welcome-copy">直接说出你的目标。查询类任务会立即返回结果，修改配置前会先展示影响范围。</p>
+              <div class="quick-grid" aria-label="常用任务">
+                <button id="quickCreateTask" type="button" data-prompt="下周开始给广州悦汇城订阅离岗检测，每天 9 点到 22 点">
+                  <span id="quickCreateIcon" class="quick-icon blue" aria-hidden="true">＋</span>
+                  <span><strong id="quickCreateTitle">创建巡检任务</strong><small id="quickCreateDescription">设置能力、门店和时间</small></span>
+                </button>
+                <button id="quickEventPrompt" type="button" data-prompt="昨天广州悦汇城离岗超过 5 分钟有哪些告警">
+                  <span class="quick-icon amber" aria-hidden="true">◎</span>
+                  <span><strong>查询告警</strong><small>按时间、门店或类型查找</small></span>
+                </button>
+                <button id="quickAnalyticsPrompt" type="button" data-prompt="上周广州悦汇城抽烟告警最多的门店 Top10">
+                  <span class="quick-icon violet" aria-hidden="true">⌁</span>
+                  <span><strong>分析巡检数据</strong><small>查看排行、趋势和误报率</small></span>
+                </button>
+                <button id="quickCameraPrompt" type="button" data-prompt="查看广州悦汇城离线摄像头">
+                  <span class="quick-icon green" aria-hidden="true">◇</span>
+                  <span><strong>检查设备状态</strong><small>快速定位离线摄像头</small></span>
+                </button>
+              </div>
+            </section>
+
+            <div id="messages" class="messages" aria-live="polite"></div>
+
+            <section id="planSection" class="inline-plan-section" hidden>
+              <div class="inline-plan-head">
+                <div>
+                  <span class="eyebrow">执行前确认</span>
+                  <h3>请确认任务信息</h3>
+                </div>
+                <span id="planStatus" class="tag secondary">无任务</span>
+              </div>
+              <div id="planCard"></div>
+            </section>
+          </div>
+
+          <div class="composer-wrap">
+            <form id="chatForm" class="composer">
+              <textarea id="chatInput" rows="1" aria-label="给巡检助理发送消息" placeholder="描述你想查询或执行的巡检任务…"></textarea>
+              <div class="composer-footer">
+                <div class="composer-attachment" aria-label="Office 附件">
+                  <input id="officeFileInput" type="file" accept=".xlsx,.docx,.csv,.pptx" multiple hidden>
+                  <button id="officeAttachBtn" type="button" class="secondary-btn">附件</button>
+                  <small id="officeAttachmentHint">Excel / Word，最多 3 个，每个 40MB</small>
+                </div>
+                <div id="conversationModeSwitch" class="conversation-mode-switch" role="group" aria-label="对话模式">
+                  <button class="active" type="button" data-conversation-mode="AUTO" aria-pressed="true">自动</button>
+                  <button type="button" data-conversation-mode="OPEN_QA" aria-pressed="false">开放问答</button>
+                  <button type="button" data-conversation-mode="INSPECTION" aria-pressed="false">巡检工作</button>
+                </div>
+                <div class="composer-context"><span class="status-dot"></span><span id="composerScope">广州悦汇城</span></div>
+                <span class="keyboard-hint">Enter 发送 · Shift + Enter 换行</span>
+                <button id="sendBtn" type="submit" aria-label="发送消息">发送 <span aria-hidden="true">↑</span></button>
+              </div>
+            </form>
+            <p class="disclaimer">AI 可能会出错，重要操作会在执行前请你确认。</p>
+          </div>
+        </section>
+
+        <section id="eventsView" class="view content-view">
+          <div class="content-toolbar">
+            <div>
+              <strong id="recordsToolbarTitle">告警记录</strong>
+              <span id="recordsToolbarDescription">支持分页浏览当前查询范围内的全部告警</span>
+            </div>
+            <div class="events-toolbar-controls">
+              <div class="record-mode-switch" role="tablist" aria-label="证据记录类型">
+                <button id="alarmRecordsTab" class="active" type="button" role="tab" aria-selected="true">告警事件</button>
+                <button id="inspectionRecordsTab" type="button" role="tab" aria-selected="false">AI 巡检记录</button>
+              </div>
+              <div id="alarmQueryActions" class="toolbar-actions">
+                <button id="queryEventsBtn" type="button">昨日离岗告警</button>
+                <button id="queryAllEventsBtn" type="button">近 7 天全部告警</button>
+              </div>
+            </div>
+          </div>
+          <div id="eventsList" class="record-list"></div>
+          <nav id="eventsPagination" class="pagination-bar" aria-label="历史记录分页" hidden>
+            <span id="eventsPaginationSummary" class="pagination-summary" aria-live="polite">共 0 条</span>
+            <div class="pagination-controls">
+              <button id="eventFirstPage" class="icon-page-button" type="button" aria-label="第一页" title="第一页">«</button>
+              <button id="eventPreviousPage" class="icon-page-button" type="button" aria-label="上一页" title="上一页">‹</button>
+              <label class="page-jump" for="eventPageInput">
+                第
+                <input id="eventPageInput" type="number" min="1" value="1" inputmode="numeric" aria-label="当前页码" />
+                <span id="eventTotalPages">/ 1 页</span>
+              </label>
+              <button id="eventNextPage" class="icon-page-button" type="button" aria-label="下一页" title="下一页">›</button>
+              <button id="eventLastPage" class="icon-page-button" type="button" aria-label="最后一页" title="最后一页">»</button>
+            </div>
+            <label class="page-size-control" for="eventPageSize">
+              每页
+              <select id="eventPageSize" aria-label="每页记录数量">
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="50" selected>50</option>
+                <option value="100">100</option>
+              </select>
+              条
+            </label>
+          </nav>
+        </section>
+
+        <section id="analyticsView" class="view content-view">
+          <div class="content-toolbar">
+            <div>
+              <strong>数据概览</strong>
+              <span>结果会说明统计范围和时间口径</span>
+            </div>
+            <div class="toolbar-actions">
+              <button id="runAnalyticsBtn" type="button">查看华东抽烟告警排行</button>
+            </div>
+          </div>
+          <div id="analyticsResult" class="analytics-result"></div>
+        </section>
+
+        <section id="subscriptionsView" class="view content-view">
+          <div class="content-toolbar">
+            <div>
+              <strong id="subscriptionsTitle">已启用的巡检任务</strong>
+              <span id="subscriptionsDescription">通过对话确认后的配置会出现在这里</span>
+            </div>
+            <button id="subscriptionCreateBtn" class="primary-button" type="button" data-prompt="下周开始给广州悦汇城订阅离岗检测，每天 9 点到 22 点">创建巡检任务</button>
+          </div>
+          <div id="subscriptionsList" class="record-list"></div>
+        </section>
+
+        <section id="integrationsView" class="view content-view">
+          <div class="content-toolbar">
+            <div>
+              <strong>租户与门店接入</strong>
+              <span>查看已接入租户、脱敏凭证状态和已同步门店</span>
+            </div>
+            <button id="integrationCreateBtn" class="primary-button" type="button" data-prompt="接入一个新的 DeepVision 租户">通过对话接入租户</button>
+          </div>
+          <div id="integrationsList" class="integrations-list"></div>
+        </section>
+
+        <section id="tenantSettingsView" class="view content-view">
+          <div class="content-toolbar">
+            <div>
+              <strong>租户能力开关</strong>
+              <span>按租户启停开放检索与 Office 协同能力；所有变更均记录审计，巡检链路不受影响。</span>
+            </div>
+          </div>
+          <div id="tenantFeatureFlags" class="tenant-feature-flags"></div>
+        </section>
+
+        <section id="researchRecordsView" class="view content-view research-records-view">
+          <div class="content-toolbar">
+            <div>
+              <strong>开放检索记录</strong>
+              <span>仅展示你自己的最终回答、引用与已采用证据，不保存网页全文。</span>
+            </div>
+          </div>
+          <div class="research-record-filters" aria-label="开放检索记录筛选">
+            <label>
+              <span class="sr-only">搜索问题或改写</span>
+              <input id="researchRecordQuery" type="search" maxlength="180" placeholder="搜索我的问题或改写" />
+            </label>
+            <select id="researchRecordFactIntent" aria-label="事实类型">
+              <option value="">全部事实类型</option>
+              <option value="EVENT_DATE">事件日期</option>
+              <option value="POLICY_APPOINTMENT">慢变事实</option>
+              <option value="PRICE_WEATHER_FLIGHT">高时效信息</option>
+              <option value="LIVE_STATUS">实时状态</option>
+              <option value="EVERGREEN_FACT">客观事实</option>
+            </select>
+            <select id="researchRecordStatus" aria-label="核验状态">
+              <option value="">全部核验状态</option>
+              <option value="VERIFIED">已核验</option>
+              <option value="PARTIALLY_VERIFIED">部分核验</option>
+              <option value="CONFLICTING">来源冲突</option>
+              <option value="NO_AUTHORITATIVE_SOURCE">未找到可信来源</option>
+              <option value="SEARCH_UNAVAILABLE">服务不可用</option>
+            </select>
+            <select id="researchRecordFeedback" aria-label="反馈状态">
+              <option value="">全部反馈</option>
+              <option value="HELPFUL">有帮助</option>
+              <option value="DATE_WRONG">日期不对</option>
+              <option value="NOT_FOUND">没有找到答案</option>
+              <option value="NONE">未反馈</option>
+            </select>
+            <button id="researchRecordFilterBtn" type="button">筛选</button>
+          </div>
+          <div class="research-record-layout">
+            <div id="researchRecordsList" class="research-record-list" aria-live="polite"></div>
+            <aside id="researchRecordDetail" class="research-record-detail" aria-live="polite">
+              <div class="empty-state">选择一条记录，查看最终回答与引用。</div>
+            </aside>
+          </div>
+          <nav id="researchRecordsPagination" class="pagination-bar" aria-label="开放检索记录分页" hidden>
+            <span id="researchRecordsPaginationSummary" class="pagination-summary"></span>
+            <div class="pagination-controls">
+              <button id="researchRecordsPrevious" class="icon-page-button" type="button" aria-label="上一页">‹</button>
+              <span id="researchRecordsPage" class="pagination-summary"></span>
+              <button id="researchRecordsNext" class="icon-page-button" type="button" aria-label="下一页">›</button>
+            </div>
+          </nav>
+        </section>
+
+        <section id="agentCatalogView" class="view content-view agent-catalog-view">
+          <div class="agent-catalog-shell">
+            <div class="agent-hero-card">
+              <div class="agent-hero-copy">
+                <span class="eyebrow">Agent 能力中心</span>
+                <h2>把门店巡检经验变成可执行的 Agent 能力</h2>
+                <p>用 Skill 描述“用户想做什么”，用工具负责“系统怎么执行”。导入或上线前会自动校验 Schema、风险等级、权限和审计要求。</p>
+                <div class="agent-flow-steps" aria-label="能力创建流程">
+                  <span><b>1</b> 描述业务意图</span>
+                  <span><b>2</b> 补齐执行信息</span>
+                  <span><b>3</b> 校验后进入目录</span>
+                </div>
+              </div>
+              <div class="agent-hero-actions" aria-label="新增 Agent 能力">
+                <span class="agent-action-label">推荐操作</span>
+                <button id="agentAddSkillBtn" class="agent-entry-button skill" type="button" aria-label="创建 Skill 能力">
+                  <span class="agent-entry-mark">Skill</span>
+                  <span><strong>创建 Skill 能力</strong><small>适合新增巡检 Skill</small></span>
+                </button>
+                <button id="agentAddToolBtn" class="agent-entry-button tool" type="button" aria-label="注册工具调用">
+                  <span class="agent-entry-mark">Tool</span>
+                  <span><strong>注册工具调用</strong><small>接入 API、MCP 或本地工具</small></span>
+                </button>
+                <button id="agentImportShortcutBtn" class="agent-entry-button ghost" type="button">
+                  <span class="agent-entry-mark">JSON</span>
+                  <span><strong>导入 Manifest</strong><small>专家模式，支持批量接入</small></span>
+                </button>
+              </div>
+            </div>
+
+            <div class="agent-catalog-nav-row">
+              <div>
+                <strong>能力目录</strong>
+                <span>先查看已有能力，再按需创建、注册或导入</span>
+              </div>
+              <div id="agentCatalogTabs" class="record-mode-switch" role="tablist" aria-label="Agent 能力目录">
+                <button class="active" type="button" role="tab" data-agent-catalog-mode="skills">Skill 列表</button>
+                <button type="button" role="tab" data-agent-catalog-mode="tools">执行工具</button>
+                <button type="button" role="tab" data-agent-catalog-mode="intents">意图路由</button>
+                <button type="button" role="tab" data-agent-catalog-mode="memories">长期记忆</button>
+                <button type="button" role="tab" data-agent-catalog-mode="knowledge">知识库</button>
+                <button id="agentManifestTab" type="button" role="tab" data-agent-catalog-mode="import">Manifest 导入</button>
+              </div>
+            </div>
+          </div>
+          <div id="agentCatalogSummary" class="agent-catalog-summary"></div>
+          <div id="agentCatalogContent" class="agent-catalog-content"></div>
+            <div id="agentManifestPanel" class="agent-manifest-panel" hidden>
+              <div class="manifest-panel-head">
+                <div>
+                <strong>创建或导入能力配置</strong>
+                <span id="agentManifestModeHint">可以先用自然语言生成草稿，也可以选择模板后修改 JSON。系统会先校验格式、风险和执行声明，再允许导入目录。</span>
+              </div>
+              <div class="toolbar-actions">
+                <button id="agentManifestUseSkillTemplate" class="manifest-template-button skill" type="button">Skill 模板</button>
+                <button id="agentManifestUseToolTemplate" class="manifest-template-button tool" type="button">工具模板</button>
+              </div>
+            </div>
+            <section class="manifest-natural-card" aria-label="自然语言生成 Manifest 草稿">
+              <div>
+                <span class="eyebrow">自然语言创建</span>
+                <strong>描述你想新增的 Skill 或工具</strong>
+                <p>系统会自动解析意图、槽位、执行步骤和风险等级，生成可校验的 Manifest 草稿。</p>
+              </div>
+              <label for="agentManifestPrompt">
+                <span>需求描述</span>
+                <textarea id="agentManifestPrompt" rows="3" placeholder="例如：创建一个每天上午 10 点检查 OPPO 门店是否存在其他品牌 Logo 或宣传海报的巡检 Skill"></textarea>
+              </label>
+              <div class="manifest-natural-actions">
+                <button id="agentManifestGenerateSkill" class="primary-button" type="button">生成 Skill 草稿</button>
+                <button id="agentManifestGenerateTool" type="button">生成工具草稿</button>
+                <span>生成后不会直接导入，仍需校验通过。</span>
+              </div>
+            </section>
+            <div class="agent-import-editor-grid">
+              <aside class="manifest-guide-card">
+                <span class="eyebrow">导入前检查</span>
+                <strong>确保 Agent 能安全执行</strong>
+                <ol>
+                  <li>名称、版本和描述清晰可追溯</li>
+                  <li>必填信息、执行步骤和工具边界完整</li>
+                  <li>高风险写操作必须声明二次确认</li>
+                </ol>
+              </aside>
+              <label class="manifest-editor-card" for="agentManifestInput">
+                <span>Manifest JSON</span>
+                <textarea id="agentManifestInput" class="manifest-editor" spellcheck="false" aria-label="Agent Manifest JSON"></textarea>
+              </label>
+            </div>
+            <div class="manifest-actions">
+              <button id="agentManifestCancel" class="quiet-button" type="button">取消</button>
+              <button id="agentManifestValidate" type="button">校验 Manifest</button>
+              <button id="agentManifestImport" class="primary-button" type="button">导入到目录</button>
+            </div>
+            <div id="agentManifestValidation" class="manifest-validation"></div>
+          </div>
+        </section>
+
+        <section id="auditView" class="view content-view">
+          <div class="content-toolbar">
+            <div>
+              <strong>最近操作</strong>
+              <span>查看配置变更、证据访问和反馈记录</span>
+            </div>
+          </div>
+          <div id="auditList" class="audit-list"></div>
+        </section>
+      </main>
+
+      <aside id="inspectorPanel" class="inspector-panel" aria-label="任务详情" aria-hidden="true">
+        <div class="inspector-head">
+          <div>
+            <span class="eyebrow">当前任务</span>
+            <h2>任务详情</h2>
+          </div>
+          <button id="detailClose" class="icon-button" type="button" aria-label="关闭任务详情">×</button>
+        </div>
+
+        <section class="inspector-section">
+          <div class="section-title-row">
+            <h3>执行链路</h3>
+            <span id="agentRunStatus" class="tag info">就绪</span>
+          </div>
+          <div id="agentTrace" class="agent-trace"></div>
+        </section>
+
+        <section class="inspector-section evidence-section">
+          <div class="section-title-row">
+            <h3 id="evidencePanelTitle">告警证据</h3>
+            <span id="eventStatus" class="tag secondary">未选择</span>
+          </div>
+          <div id="eventDetail" class="empty-state">选择一条记录后，可在这里查看完整证据。</div>
+        </section>
+      </aside>
+      <div id="inspectorBackdrop" class="inspector-backdrop" aria-hidden="true"></div>
+    </div>
+
+    <div id="imagePreview" class="image-preview" role="dialog" aria-modal="true" aria-labelledby="imagePreviewTitle" aria-hidden="true" hidden>
+      <div class="image-preview-dialog">
+        <header class="image-preview-header">
+          <div>
+            <strong id="imagePreviewTitle">查看监控快照</strong>
+            <span id="imagePreviewCaption"></span>
+          </div>
+          <div class="image-preview-actions" aria-label="图片查看工具">
+            <span id="imagePreviewPosition" class="image-preview-position" aria-live="polite">1 / 1</span>
+            <button id="imagePreviewPrevious" type="button" aria-label="上一张" title="上一张">←</button>
+            <button id="imagePreviewNext" type="button" aria-label="下一张" title="下一张">→</button>
+            <span class="image-preview-action-divider" aria-hidden="true"></span>
+            <button id="imageZoomOut" type="button" aria-label="缩小图片" title="缩小">−</button>
+            <button id="imageZoomReset" type="button" aria-label="恢复图片大小" title="恢复大小">↺</button>
+            <button id="imageZoomIn" type="button" aria-label="放大图片" title="放大">＋</button>
+            <button id="imagePreviewClose" type="button" aria-label="关闭图片预览" title="关闭">×</button>
+          </div>
+        </header>
+        <div id="imagePreviewCanvas" class="image-preview-canvas">
+          <span id="imagePreviewSkuBadge" class="sku-evidence-badge image-preview-sku-badge" hidden></span>
+          <img id="imagePreviewImage" alt="放大的监控快照" />
+        </div>
+      </div>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="/static/vendor/hls.min.js"></script>
+    <script src="/static/vendor/flv.min.js"></script>
+    <script src="/static/app.js?v=20260824-open-research-records"></script>
+  </body>
+</html>
